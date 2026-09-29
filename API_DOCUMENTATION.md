@@ -1,4 +1,4 @@
-# Dokumentasi Lengkap API MotorCenter (Milestone 1)
+# Dokumentasi API MotorCenter (Milestone 1)
 
 Dokumentasi resmi seluruh *endpoint* RESTful API backend **MotorCenter** (Sistem Manajemen Bengkel Motor).
 
