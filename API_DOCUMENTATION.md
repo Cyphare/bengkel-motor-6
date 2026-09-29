@@ -1,0 +1,456 @@
+# Dokumentasi Lengkap API MotorCenter (Milestone 1)
+
+Dokumentasi resmi seluruh *endpoint* RESTful API backend **MotorCenter** (Sistem Manajemen Bengkel Motor).
+
+* **Base URL**: `http://localhost:8000/api`
+* **Format Data**: `application/json`, kecuali faktur `application/pdf`
+* **Skema Autentikasi**: `Authorization: Bearer <accessToken>`
+
+---
+
+## Standar Format Amplop Respons
+
+### 1. Respons Berhasil (Success Envelope)
+```json
+{
+  "success": true,
+  "message": "Pesan deskriptif keberhasilan operasi",
+  "data": { ... }
+}
+```
+
+### 2. Respons Berhasil Terpaginasi (Paginated Envelope)
+```json
+{
+  "success": true,
+  "message": "Daftar data berhasil diambil",
+  "data": [ ... ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 45,
+    "totalPages": 5
+  }
+}
+```
+
+### 3. Respons Galat (Error Envelope)
+```json
+{
+  "success": false,
+  "message": "Pesan deskripsi kesalahan sistem atau validasi",
+  "errors": [
+    {
+      "field": "email",
+      "message": "Format alamat email tidak valid"
+    }
+  ]
+}
+```
+
+---
+
+## 1. System Health Check
+
+### `GET /api/health`
+Memeriksa status operasional server backend dan status konektivitas basis data MongoDB live.
+* **Hak Akses**: Publik (Tanpa Token).
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Sistem backend MotorCenter berjalan normal",
+  "data": {
+    "app": "MotorCenter",
+    "version": "1.0.0",
+    "environment": "development",
+    "status": "UP",
+    "uptimeSeconds": 120,
+    "timestamp": "2026-09-29T12:00:00.000Z",
+    "database": {
+      "status": "connected",
+      "code": 1,
+      "databaseName": "motorcenter_phase3",
+      "host": "ac-yg3jtec-shard-00-00.d4nl6xr.mongodb.net"
+    },
+    "system": {
+      "nodeVersion": "v24.16.0",
+      "platform": "win32",
+      "memoryUsageMB": {
+        "rss": 73.82,
+        "heapTotal": 24.78,
+        "heapUsed": 22.96
+      }
+    }
+  }
+}
+```
+
+---
+
+## 2. Autentikasi & Profil Pengguna (`/api/auth`)
+
+### `POST /api/auth/register`
+Pendaftaran mandiri akun pelanggan baru.
+* **Hak Akses**: Publik.
+* **Request Body**:
+```json
+{
+  "name": "Dimas Saputra",
+  "email": "dimas.customer@gmail.com",
+  "password": "password123",
+  "phone": "081298761234"
+}
+```
+* **Sample Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Pendaftaran akun berhasil",
+  "data": {
+    "user": {
+      "_id": "674a91b2c45e89a1b2c3d4e5",
+      "name": "Dimas Saputra",
+      "email": "dimas.customer@gmail.com",
+      "role": "pelanggan",
+      "phone": "081298761234",
+      "isActive": true,
+      "createdAt": "2026-09-29T12:05:00.000Z"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+### `POST /api/auth/login`
+Autentikasi kredensial pengguna (email & password).
+* **Hak Akses**: Publik.
+* **Request Body**:
+```json
+{
+  "email": "admin@motorcenter.id",
+  "password": "admin123"
+}
+```
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Login berhasil",
+  "data": {
+    "user": {
+      "_id": "674a91b2c45e89a1b2c3d4e0",
+      "name": "Administrator MotorCenter",
+      "email": "admin@motorcenter.id",
+      "role": "admin",
+      "phone": "081234567890",
+      "isActive": true
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+### `GET /api/auth/me`
+Mengambil data profil pengguna yang sedang login.
+* **Hak Akses**: Semua peran yang terautentikasi (`Bearer Token`).
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Data profil berhasil diambil",
+  "data": {
+    "_id": "674a91b2c45e89a1b2c3d4e0",
+    "name": "Administrator MotorCenter",
+    "email": "admin@motorcenter.id",
+    "role": "admin",
+    "phone": "081234567890",
+    "isActive": true
+  }
+}
+```
+
+---
+
+## 3. Manajemen Staf & Pengguna (`/api/users`)
+
+### `POST /api/users`
+Membuat akun staf internal bengkel (`admin`, `kasir`, `mekanik`, `pemilik`).
+* **Hak Akses**: `admin`.
+* **Request Body**:
+```json
+{
+  "name": "Roni Wijaya",
+  "email": "roni.mekanik@motorcenter.id",
+  "password": "mekanik123",
+  "role": "mekanik",
+  "phone": "081255554444"
+}
+```
+* **Sample Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Akun staf (mekanik) berhasil dibuat",
+  "data": {
+    "_id": "674a92c1c45e89a1b2c3d4e6",
+    "name": "Roni Wijaya",
+    "email": "roni.mekanik@motorcenter.id",
+    "role": "mekanik",
+    "phone": "081255554444",
+    "isActive": true
+  }
+}
+```
+
+### `GET /api/users/mechanics`
+Mengambil daftar mekanik aktif untuk *dropdown* penugasan servis.
+* **Hak Akses**: `admin`, `kasir`.
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Daftar mekanik aktif berhasil diambil",
+  "data": [
+    {
+      "_id": "674a91b2c45e89a1b2c3d4e2",
+      "name": "Budi Santoso (Mekanik Senior)",
+      "email": "budi.mekanik@motorcenter.id",
+      "phone": "081234567892",
+      "isActive": true
+    },
+    {
+      "_id": "674a91b2c45e89a1b2c3d4e3",
+      "name": "Joko Susilo (Mekanik CVT & Mesin)",
+      "email": "joko.mekanik@motorcenter.id",
+      "phone": "081234567893",
+      "isActive": true
+    }
+  ]
+}
+```
+
+---
+
+## 4. Tiket Servis, Alur Pengerjaan, & Stok (`/api/bookings`)
+
+### `POST /api/bookings/online`
+Pelanggan terdaftar melakukan booking servis daring.
+* **Hak Akses**: `pelanggan`.
+* **Request Body**:
+```json
+{
+  "plateNumber": "AB 1234 GA",
+  "motorModel": "Honda Vario 160 ABS",
+  "complaint": "Tarikan awal gredeg dan rem depan kurang pakem",
+  "serviceDate": "2026-10-01T08:30:00.000Z"
+}
+```
+* **Sample Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Reservasi online berhasil dibuat",
+  "data": {
+    "_id": "674a93a1c45e89a1b2c3d4f1",
+    "bookingNumber": "MC-20260929-0001",
+    "bookingType": "online",
+    "customerName": "Andi Pratama",
+    "customerPhone": "081234567895",
+    "plateNumber": "AB 1234 GA",
+    "motorModel": "Honda Vario 160 ABS",
+    "complaint": "Tarikan awal gredeg dan rem depan kurang pakem",
+    "status": "Antre",
+    "serviceFee": 0,
+    "partsTotalCost": 0,
+    "grandTotal": 0,
+    "partsUsed": [],
+    "statusHistory": [
+      {
+        "status": "Antre",
+        "changedAt": "2026-09-29T12:10:00.000Z",
+        "notes": "Reservasi servis online berhasil dibuat oleh pelanggan"
+      }
+    ]
+  }
+}
+```
+
+### `POST /api/bookings/walk-in`
+Kasir/Admin mencatat kendaraan yang datang langsung ke bengkel.
+* **Hak Akses**: `admin`, `kasir`.
+* **Request Body**:
+```json
+{
+  "customerName": "Bapak Sugeng",
+  "customerPhone": "081399887766",
+  "plateNumber": "AB 5678 XY",
+  "motorModel": "Yamaha NMAX 155",
+  "complaint": "Ganti oli rutin dan cek CVT",
+  "serviceFee": 45000
+}
+```
+* **Sample Response (201 Created)**:
+```json
+{
+  "success": true,
+  "message": "Tiket servis walk-in berhasil dibuat",
+  "data": {
+    "_id": "674a93b2c45e89a1b2c3d4f2",
+    "bookingNumber": "MC-20260929-0002",
+    "bookingType": "walk-in",
+    "customerName": "Bapak Sugeng",
+    "customerPhone": "081399887766",
+    "plateNumber": "AB 5678 XY",
+    "motorModel": "Yamaha NMAX 155",
+    "complaint": "Ganti oli rutin dan cek CVT",
+    "status": "Antre",
+    "serviceFee": 45000,
+    "grandTotal": 45000
+  }
+}
+```
+
+### `PUT /api/bookings/:id/assign`
+Menugaskan mekanik penanggung jawab ke tiket servis.
+* **Hak Akses**: `admin`, `kasir`.
+* **Request Body**:
+```json
+{
+  "mechanicId": "674a91b2c45e89a1b2c3d4e2"
+}
+```
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Mekanik Budi Santoso berhasil ditugaskan ke tiket MC-20260929-0002",
+  "data": {
+    "_id": "674a93b2c45e89a1b2c3d4f2",
+    "bookingNumber": "MC-20260929-0002",
+    "mechanicId": "674a91b2c45e89a1b2c3d4e2"
+  }
+}
+```
+
+### `PUT /api/bookings/:id/status`
+Memperbarui status pengerjaan tiket servis secara bertahap (`Antre` $\rightarrow$ `Diperiksa` $\rightarrow$ `Dikerjakan` $\rightarrow$ `Selesai` $\rightarrow$ `Diambil`).
+* **Hak Akses**: `admin`, `kasir`, `mekanik` (khusus tiket tugasnya). Transisi ke `Diambil` hanya untuk `admin` dan `kasir`, karena menandai pembayaran dan serah motor.
+* **Request Body**:
+```json
+{
+  "status": "Dikerjakan",
+  "serviceFee": 50000,
+  "mechanicNotes": "Pembersihan CVT selesai, lanjut penggantian oli mesin."
+}
+```
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Status tiket servis berhasil diubah ke 'Dikerjakan'",
+  "data": {
+    "_id": "674a93b2c45e89a1b2c3d4f2",
+    "bookingNumber": "MC-20260929-0002",
+    "status": "Dikerjakan",
+    "serviceFee": 50000,
+    "mechanicNotes": "Pembersihan CVT selesai, lanjut penggantian oli mesin."
+  }
+}
+```
+
+### `POST /api/bookings/:id/parts`
+Mekanik menambahkan suku cadang ke tiket servis. Stok gudang dan tiket diperbarui dalam satu transaksi MongoDB; jika penyimpanan tiket gagal, potongan stok dibatalkan.
+* **Hak Akses**: `admin`, `kasir`, `mekanik` (tiket tugasnya).
+* **Request Body**:
+```json
+{
+  "partId": "674a91b2c45e89a1b2c3d4a1",
+  "quantity": 1
+}
+```
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Suku cadang 'Oli Mesin Shell Advance AX7 10W-40 0.8L' (x1) berhasil ditambahkan ke tiket servis",
+  "data": {
+    "_id": "674a93b2c45e89a1b2c3d4f2",
+    "bookingNumber": "MC-20260929-0002",
+    "serviceFee": 50000,
+    "partsTotalCost": 58000,
+    "grandTotal": 108000,
+    "partsUsed": [
+      {
+        "_id": "674a94f1c45e89a1b2c3d4bb",
+        "partId": "674a91b2c45e89a1b2c3d4a1",
+        "code": "PART-OLI-01",
+        "name": "Oli Mesin Shell Advance AX7 10W-40 0.8L",
+        "price": 58000,
+        "quantity": 1,
+        "subtotal": 58000,
+        "addedAt": "2026-09-29T12:20:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### `DELETE /api/bookings/:id/parts/:partItemId`
+Membatalkan pemakaian suku cadang dari tiket servis. Pengembalian stok dan perubahan tiket berada dalam satu transaksi MongoDB.
+* **Hak Akses**: `admin`, `kasir`, `mekanik` (tiket tugasnya).
+* **Sample Response (200 OK)**:
+```json
+{
+  "success": true,
+  "message": "Suku cadang 'Oli Mesin Shell Advance AX7 10W-40 0.8L' berhasil dibatalkan dan stok dikembalikan ke gudang",
+  "data": {
+    "_id": "674a93b2c45e89a1b2c3d4f2",
+    "bookingNumber": "MC-20260929-0002",
+    "serviceFee": 50000,
+    "partsTotalCost": 0,
+    "grandTotal": 50000,
+    "partsUsed": []
+  }
+}
+```
+
+---
+
+## 5. Laporan, Email, dan Faktur (Fase 5)
+
+Omzet dihitung hanya dari tiket berstatus `Diambil`, memakai `pickedUpAt` serta snapshot `serviceFee` dan `partsTotalCost`. Semua batas hari menggunakan `Asia/Jakarta` (WIB).
+
+### `GET /api/reports/dashboard`
+
+* **Hak Akses**: `admin`, `pemilik`.
+* **Respons 200**: `data.date` (`YYYY-MM-DD` WIB), `revenueToday`, `revenueMonth`, `activeTickets` (jumlah saat ini untuk `Antre`, `Diperiksa`, `Dikerjakan`), `completedToday` (tiket yang mencapai `Selesai` hari ini), dan `lowStockParts` (part aktif dengan `stock <= minStock`).
+
+### `GET /api/reports/revenue`
+
+* **Hak Akses**: `admin`, `pemilik`.
+* **Query opsional**: `startDate` dan `endDate` dalam format `YYYY-MM-DD`, wajib dipakai bersama dan tidak boleh terbalik. Keduanya inklusif menurut WIB. Tanpa query, rentang tanggal 1 bulan berjalan sampai hari ini.
+* **Respons 200**: `data.startDate`, `endDate`, `serviceTotal`, `partsTotal`, `revenue`, dan `days`. Setiap elemen `days` berisi `date`, `serviceTotal`, `partsTotal`, `revenue`, `ticketCount`; hari tanpa transaksi tidak muncul. Rentang kosong menghasilkan total nol dan `days: []`.
+
+### `GET /api/bookings/:id/invoice/pdf`
+
+* **Hak Akses**: `admin`, `kasir`, `pemilik`, atau pelanggan pemilik tiket online. Mekanik dan pelanggan lain mendapat `403`.
+* **Syarat**: tiket sudah `Diambil` dan memiliki `pickedUpAt`; sebelum itu respons `400`.
+* **Respons 200**: stream PDF A4 dengan `Content-Type: application/pdf`. Nomor faktur memakai `bookingNumber`; isi mencakup pelanggan, kendaraan, tanggal pengambilan WIB, jasa, snapshot suku cadang, dan total. Berkas tidak disimpan di database.
+
+### Email otomatis
+
+Booking online mengirim konfirmasi ke email akun pelanggan. Saat tiket online menjadi `Selesai`, email kedua memuat estimasi jasa, part, dan total. Tiket walk-in tidak mengirim email. Tanpa konfigurasi SMTP, backend memakai Ethereal dan mencatat URL pratinjau; isi `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, dan `SMTP_FROM` bersama untuk pengiriman nyata. Kegagalan email dicatat setelah tiket tersimpan dan tidak mengubah respons sukses; tidak ada pengiriman ulang otomatis.
+
+---
+
+## 6. Ringkasan Kode Galat HTTP (HTTP Error Codes)
+
+| Status Code | Kondisi Pemicu | Format Response Galat |
+| :---: | :--- | :--- |
+| **`400 Bad Request`** | Input schema Zod tidak valid, transisi status servis melompat, atau stok gudang kurang | `{"success": false, "message": "...", "errors": [...]}` |
+| **`401 Unauthorized`** | Header Authorization tidak ada, format token salah, atau sesi JWT telah kedaluwarsa | `{"success": false, "message": "Akses ditolak: Autentikasi diperlukan"}` |
+| **`403 Forbidden`** | Peran (RBAC) tidak berhak (misal: Pelanggan panggil API Admin, atau Mekanik A ubah tiket Mekanik B) | `{"success": false, "message": "Akses ditolak: Peran tidak memiliki wewenang"}` |
+| **`404 Not Found`** | Rute endpoint tidak ada atau dokumen ID (user, booking, part) tidak ditemukan di database | `{"success": false, "message": "Data atau sumber daya tidak ditemukan"}` |
+| **`409 Conflict`** | Terjadi duplikasi data unik (misal: email atau kode part sudah pernah terdaftar di MongoDB) | `{"success": false, "message": "Data email sudah terdaftar"}` |
+| **`500 Internal Server Error`** | Galat sistem tak tertangani | `{"success": false, "message": "Terjadi kesalahan internal pada server"}` |
