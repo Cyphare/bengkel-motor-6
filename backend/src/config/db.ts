@@ -31,19 +31,24 @@ export const getDatabaseStatus = (): DatabaseStatus => {
 /**
  * Menghubungkan Mongoose ke MongoDB
  */
+let listenersRegistered = false;
+
 export const connectDatabase = async (): Promise<typeof mongoose | null> => {
   try {
-    mongoose.connection.on('connected', () => {
-      console.log(`[MongoDB] Berhasil terhubung ke database: ${mongoose.connection.name} @ ${mongoose.connection.host}`);
-    });
+    if (!listenersRegistered) {
+      mongoose.connection.on('connected', () => {
+        console.log(`[MongoDB] Berhasil terhubung ke database: ${mongoose.connection.name} @ ${mongoose.connection.host}`);
+      });
 
-    mongoose.connection.on('error', (err) => {
-      console.error(`[MongoDB] Kesalahan koneksi:`, err.message);
-    });
+      mongoose.connection.on('error', (err) => {
+        console.error(`[MongoDB] Kesalahan koneksi:`, err.message);
+      });
 
-    mongoose.connection.on('disconnected', () => {
-      console.warn(`[MongoDB] Koneksi terputus.`);
-    });
+      mongoose.connection.on('disconnected', () => {
+        console.warn(`[MongoDB] Koneksi terputus.`);
+      });
+      listenersRegistered = true;
+    }
 
     console.log(`[MongoDB] Menghubungkan ke MongoDB...`);
     const conn = await mongoose.connect(env.MONGODB_URI, {
@@ -56,6 +61,13 @@ export const connectDatabase = async (): Promise<typeof mongoose | null> => {
     console.warn(`[MongoDB] Server tetap berjalan. Health check akan melaporkan status disconnected hingga koneksi pulih.`);
     return null;
   }
+};
+
+let pendingConnection: Promise<typeof mongoose | null> | undefined;
+
+export const ensureDatabaseConnection = (): Promise<typeof mongoose | null> => {
+  if (mongoose.connection.readyState === 1) return Promise.resolve(mongoose);
+  return pendingConnection ??= connectDatabase().finally(() => { pendingConnection = undefined; });
 };
 
 /**

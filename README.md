@@ -111,7 +111,8 @@ bengkel-motor-6/
 │   ├── .env.example                # Environment variables template
 │   ├── package.json                # Project dependencies and scripts
 │   ├── pnpm-lock.yaml              # Lockfile
-│   └── tsconfig.json               # TypeScript compiler configuration
+│   ├── tsconfig.json               # TypeScript compiler configuration
+│   └── vercel.json                 # Express deployment preset
 ├── API_DOCUMENTATION.md            # Comprehensive API specification
 ├── .gitignore                      # Git ignored files configuration
 └── README.md                       # Project documentation
@@ -163,6 +164,12 @@ pnpm run seed
   ```
 * Server URL: `http://localhost:8000`
 * Health Check: `http://localhost:8000/api/health`
+
+### 6. Deploy Express to Vercel
+
+Import this repository as a Vercel project with **Root Directory `backend`**. The [backend/vercel.json](backend/vercel.json) preset lets Vercel detect the exported Express app in `src/app.ts` as one function; `src/server.ts` remains the local server entry. Do not set a custom build command or run the seeder during deployment. See the [Vercel Express guide](https://vercel.com/docs/frameworks/backend/express).
+
+Set these variables in the Vercel project settings for each deployment environment: `MONGODB_URI`, a unique `JWT_SECRET` (at least 8 characters), and `CORS_ORIGIN` (your frontend origin). For real email delivery, set `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` together; `SMTP_PORT` is optional and defaults to 587. The local `backend/.env` is ignored by Git and is not uploaded. Ensure MongoDB Atlas allows connections from the deployment environment. After deployment, check `https://<your-domain>/api/health` for `data.database.status: "connected"` before using the API.
 
 ---
 

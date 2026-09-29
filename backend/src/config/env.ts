@@ -20,6 +20,10 @@ const envSchema = z.object({
 });
 
 const parseEnv = () => {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET?.trim()) {
+    console.error('Konfigurasi Environment tidak valid: JWT_SECRET wajib diisi di production');
+    process.exit(1);
+  }
   const result = envSchema.safeParse(process.env);
 
   if (!result.success) {
