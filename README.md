@@ -146,7 +146,7 @@ CORS_ORIGIN=*
 ```
 
 ### 4. Running the Database Seeder
-Populate the database with pre-configured accounts, service packages, inventory items, and sample tickets across all workflow stages:
+The seeder creates demo accounts, services, parts, and tickets **only on an empty database**. It rejects a database that already contains data; do not run it on a populated `motorcenter_phase3`:
 ```bash
 pnpm run seed
 ```
@@ -166,7 +166,7 @@ pnpm run seed
 
 ---
 
-## Seeded Test Accounts
+## Seeded Test Accounts (available only after seeding an empty database)
 
 All accounts use `bcryptjs` hashing (salt rounds: 10):
 
@@ -214,3 +214,5 @@ All accounts use `bcryptjs` hashing (salt rounds: 10):
 | `GET` | `/api/bookings/:id/invoice/pdf` | Admin, Kasir, Pemilik, owning Pelanggan | Download PDF receipt invoice after `Diambil` |
 
 Full request payloads and sample JSON responses are documented in [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md).
+
+For report evidence, follow the [step-by-step Postman and screenshot guide](docs/TESTING_AND_SCREENSHOTS_GUIDE.md). It uses manual requests and does not require a Postman collection file.

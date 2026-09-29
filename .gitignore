@@ -15,8 +15,9 @@ build/
 .next/
 out/
 
-# Internal Documentation & Testing (Local only)
-docs/
+# Internal documentation and testing (keep the report guide)
+docs/*
+!docs/TESTING_AND_SCREENSHOTS_GUIDE.md
 backend/tests/
 tests/
 
