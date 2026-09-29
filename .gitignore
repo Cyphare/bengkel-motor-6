@@ -1,0 +1,38 @@
+# Environment files
+.env
+.env.*
+!.env.example
+atlas-credentials.env
+*.env
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Internal Documentation & Testing (Local only)
+docs/
+backend/tests/
+tests/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
