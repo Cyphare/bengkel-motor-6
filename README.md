@@ -1,6 +1,6 @@
 # MotorCenter - Motorcycle Workshop & Inventory Management System
 
-Final Project for **Web Application Development (Pengembangan Aplikasi Web - PAW)**  
+Final Project for **Web Application Development (Pengembangan Aplikasi Web - TKIF262402)**  
 **Milestone 1: Backend Engineering & API Specification**  
 Department of Electrical Engineering and Information Technology, Faculty of Engineering, Universitas Gadjah Mada.
 
